@@ -1,0 +1,104 @@
+import mysql.connector
+from datetime import date
+
+# Connect to the database
+connection = mysql.connector.connect(
+    host="localhost",
+    user="root",  #Enter your mysql username
+    password=" ",  #Enter your mysql password
+    database="weight_gain_tracker"  #Enter your database name
+)
+cursor = connection.cursor()
+
+# Function to log a meal
+def add_meal():
+    date_input = input("Enter date (YYYY-MM-DD): ")
+    meal = input("Enter meal name: ")
+    calories = float(input("Enter calories: "))
+    protein = float(input("Enter protein (grams): "))
+
+    cursor.execute(
+        "INSERT INTO meal_logs (date, meal, calories, protein) VALUES (%s, %s, %s, %s)",
+        (date_input, meal, calories, protein)
+    )
+    connection.commit()
+    print("Meal logged successfully!")
+
+# Function to log a workout
+def add_workout():
+    date_input = input("Enter date (YYYY-MM-DD): ")
+    exercise = input("Enter exercise name: ")
+    sets = int(input("Enter sets: "))
+    reps = int(input("Enter reps: "))
+    weight_lifted = float(input("Enter weight lifted (kg): "))
+
+    cursor.execute(
+        "INSERT INTO workout_logs (date, exercise, sets, reps, weight_lifted) VALUES (%s, %s, %s, %s, %s)",
+        (date_input, exercise, sets, reps, weight_lifted)
+    )
+    connection.commit()
+    print("Workout logged successfully!")
+
+# Function to display daily summary
+def daily_summary():
+    today = date.today()
+
+    # Get total calories consumed today
+    cursor.execute("SELECT SUM(calories) FROM meal_logs WHERE date = %s", (today,))
+    total_calories = cursor.fetchone()[0] or 0
+
+    # Get calorie target
+    cursor.execute("SELECT calorie_target FROM user_profile")
+    calorie_target = cursor.fetchone()[0]
+
+    # Calculate remaining calories
+    remaining_calories = calorie_target - total_calories
+
+    # Provide meal recommendations
+    print("\nCalorie Summary:")
+    print(f"Calories consumed today: {total_calories}")
+    print(f"Remaining calories: {remaining_calories}")
+    if remaining_calories > 0:
+        print("Meal suggestions:")
+        print("- Smoothies, peanut butter, or high-protein snacks.")
+        print("- Rice with chicken or beans.")
+    else:
+        print("You've met your calorie target!")
+
+    # Workout progress
+    cursor.execute("SELECT SUM(weight_lifted) FROM workout_logs WHERE date = %s", (today,))
+    total_weight_lifted = cursor.fetchone()[0] or 0
+
+    print("\nWorkout Summary:")
+    print(f"Total weight lifted today: {total_weight_lifted} kg")
+    if total_weight_lifted < 100:
+        print("Consider adding more weightlifting exercises!")
+    else:
+        print("Great job on your workout today!")
+
+# Menu to navigate options
+def menu():
+    while True:
+        print("\nMenu:")
+        print("1. Log a Meal")
+        print("2. Log a Workout")
+        print("3. View Daily Summary")
+        print("4. Exit")
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            add_meal()
+        elif choice == "2":
+            add_workout()
+        elif choice == "3":
+            daily_summary()
+        elif choice == "4":
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+# Run the menu
+menu()
+
+# Close the database connection
+connection.close()
